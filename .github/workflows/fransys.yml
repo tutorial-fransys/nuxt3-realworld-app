@@ -1,0 +1,23 @@
+name: Fransys CI for vue on master
+
+on:
+  push:
+    branches: [ "master" ]
+
+env:
+  FRANSYS_REGISTRY: ${{ secrets.FRANSYS_REGISTRY_DOMAIN }}/${{ secrets.FRANSYS_REGISTRY_PROJECT }}/master
+  DOCKERFILE_PATH: /build/vue/Dockerfile
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: fransys/buildpack:0.6.0
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Fransys registry
+        run: docker login -u ${{ secrets.FRANSYS_REGISTRY_MASTER_USERNAME }} -p ${{ secrets.FRANSYS_REGISTRY_MASTER_PASSWORD }} ${{ secrets.FRANSYS_REGISTRY_DOMAIN }}
+      - name: Prepare the directory
+        run: cp -r /build build
+      - name: Build the Docker image
+        run: docker buildx build --cache-from "$FRANSYS_REGISTRY:${{ github.sha }}" --cache-from "$FRANSYS_REGISTRY:${{ github.ref_name }}" -f $DOCKERFILE_PATH --tag "$FRANSYS_REGISTRY:${{ github.sha }}" --tag "$FRANSYS_REGISTRY:${{ github.ref_name }}" --progress=plain --push . 2>&1
